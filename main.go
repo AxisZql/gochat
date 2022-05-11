@@ -43,6 +43,7 @@ func main() {
 	}
 	fmt.Println(fmt.Sprintf("run %s module done!", module))
 	quit := make(chan os.Signal)
+	// 收到系统的中断信号会往quit channel种写入信息然后退出
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 	fmt.Println("Server exiting")
