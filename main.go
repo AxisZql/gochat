@@ -20,6 +20,7 @@ import (
 
 func main() {
 	var module string
+	// 利用命令行标志来设置运行模式
 	flag.StringVar(&module, "module", "", "assign run module")
 	flag.Parse()
 	fmt.Println(fmt.Sprintf("start run %s module", module))
