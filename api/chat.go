@@ -28,7 +28,7 @@ func New() *Chat {
 	return &Chat{}
 }
 
-//api server,Also, you can use gin,echo ... framework wrap
+// Run api server,Also, you can use gin,echo ... framework wrap
 func (c *Chat) Run() {
 	//init rpc client
 	rpc.InitLogicRpcClient()

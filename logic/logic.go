@@ -1,9 +1,10 @@
+package logic
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 18:25
  */
-package logic
 
 import (
 	"fmt"
@@ -26,6 +27,7 @@ func (logic *Logic) Run() {
 	logicConfig := config.Conf.Logic
 
 	runtime.GOMAXPROCS(logicConfig.LogicBase.CpuNum)
+	// 动态生成serverId而不使用配置文件中的serverId
 	logic.ServerId = fmt.Sprintf("logic-%s", uuid.New().String())
 	//init publish redis
 	if err := logic.InitPublishRedisClient(); err != nil {

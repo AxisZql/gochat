@@ -1,9 +1,10 @@
+package tools
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 14:18
  */
-package tools
 
 import (
 	"fmt"
@@ -21,6 +22,7 @@ type RedisOption struct {
 	Db       int
 }
 
+// GetRedisInstance 这里也是使用单例模式来初始化Redis连接
 func GetRedisInstance(redisOpt RedisOption) *redis.Client {
 	address := redisOpt.Address
 	db := redisOpt.Db

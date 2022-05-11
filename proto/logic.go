@@ -1,9 +1,10 @@
+package proto
+
 /**
  * Created by lock
  * Date: 2019-08-10
  * Time: 18:38
  */
-package proto
 
 type LoginRequest struct {
 	Name     string

@@ -1,9 +1,10 @@
+package logic
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 15:52
  */
-package logic
 
 import (
 	"context"
@@ -25,6 +26,7 @@ type RpcLogic struct {
 func (rpc *RpcLogic) Register(ctx context.Context, args *proto.RegisterRequest, reply *proto.RegisterReply) (err error) {
 	reply.Code = config.FailReplyCode
 	u := new(dao.User)
+	// 先检测用户名是否存在
 	uData := u.CheckHaveUserName(args.Name)
 	if uData.Id > 0 {
 		return errors.New("this user name already have , please login !!!")
@@ -45,6 +47,7 @@ func (rpc *RpcLogic) Register(ctx context.Context, args *proto.RegisterRequest, 
 	userData := make(map[string]interface{})
 	userData["userId"] = userId
 	userData["userName"] = args.Name
+	// 在redis中设置该用户的sessionId和用户信息的key-value映射
 	RedisSessClient.Do("MULTI")
 	RedisSessClient.HMSet(sessionId, userData)
 	RedisSessClient.Expire(sessionId, 86400*time.Second)
@@ -67,7 +70,7 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 	if (data.Id == 0) || (passWord != data.Password) {
 		return errors.New("no this user or password error!")
 	}
-	loginSessionId := tools.GetSessionIdByUserId(data.Id)
+	loginSessionId := tools.GetSessionIdByUserId(data.Id) //记录对应用户id的用户的登陆状态，其中保存者用户的登陆凭证token
 	//set token
 	//err = redis.HMSet(auth, userData)
 	randToken := tools.GetRandomToken(32)
@@ -78,7 +81,7 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 	//check is login
 	token, _ := RedisSessClient.Get(loginSessionId).Result()
 	if token != "" {
-		//logout already login user session
+		//logout already login user session,即用户只能登陆单个服务
 		oldSession := tools.CreateSessionId(token)
 		err := RedisSessClient.Del(oldSession).Err()
 		if err != nil {
@@ -86,6 +89,7 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 		}
 	}
 	RedisSessClient.Do("MULTI")
+	// 通过凭证token，可以去redis中换取，用户的id，username信息
 	RedisSessClient.HMSet(sessionId, userData)
 	RedisSessClient.Expire(sessionId, 86400*time.Second)
 	RedisSessClient.Set(loginSessionId, randToken, 86400*time.Second)
@@ -103,7 +107,8 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 func (rpc *RpcLogic) GetUserInfoByUserId(ctx context.Context, args *proto.GetUserInfoRequest, reply *proto.GetUserInfoResponse) (err error) {
 	reply.Code = config.FailReplyCode
 	userId := args.UserId
-	u := new(dao.User)
+	u := new(dao.User) //new 初始化内存空间，返回的是指针；make 分配内存空间返回的是对应类型的实例
+	// TODO: 如果不存在对应用户ID怎么办--axiszql
 	userName := u.GetUserNameByUserId(userId)
 	reply.UserId = userId
 	reply.UserName = userName
@@ -121,6 +126,7 @@ func (rpc *RpcLogic) CheckAuth(ctx context.Context, args *proto.CheckAuthRequest
 		logrus.Infof("check auth fail!,authToken is:%s", authToken)
 		return err
 	}
+	// TODO:redis 查询成功了为什么会出现len(userDataMap)==0的情况
 	if len(userDataMap) == 0 {
 		logrus.Infof("no this user session,authToken is:%s", authToken)
 		return
@@ -158,6 +164,7 @@ func (rpc *RpcLogic) Logout(ctx context.Context, args *proto.LogoutRequest, repl
 	}
 	//del serverId
 	logic := new(Logic)
+	// TODO: 这serverIdKey在哪里写入redis的？
 	serverIdKey := logic.getUserKey(fmt.Sprintf("%d", intUserId))
 	err = RedisSessClient.Del(serverIdKey).Err()
 	if err != nil {
@@ -173,9 +180,9 @@ func (rpc *RpcLogic) Logout(ctx context.Context, args *proto.LogoutRequest, repl
 	return
 }
 
-/**
-single send msg
-*/
+// ===================2022-5-12 0:00==============
+
+//Push single send msg
 func (rpc *RpcLogic) Push(ctx context.Context, args *proto.Send, reply *proto.SuccessReply) (err error) {
 	reply.Code = config.FailReplyCode
 	sendData := args
@@ -203,9 +210,7 @@ func (rpc *RpcLogic) Push(ctx context.Context, args *proto.Send, reply *proto.Su
 	return
 }
 
-/**
-push msg to room
-*/
+//PushRoom push msg to room
 func (rpc *RpcLogic) PushRoom(ctx context.Context, args *proto.Send, reply *proto.SuccessReply) (err error) {
 	reply.Code = config.FailReplyCode
 	sendData := args
@@ -242,9 +247,7 @@ func (rpc *RpcLogic) PushRoom(ctx context.Context, args *proto.Send, reply *prot
 	return
 }
 
-/**
-get room online person count
-*/
+//Count get room online person count
 func (rpc *RpcLogic) Count(ctx context.Context, args *proto.Send, reply *proto.SuccessReply) (err error) {
 	reply.Code = config.FailReplyCode
 	roomId := args.RoomId
@@ -260,9 +263,7 @@ func (rpc *RpcLogic) Count(ctx context.Context, args *proto.Send, reply *proto.S
 	return
 }
 
-/**
-get room info
-*/
+//GetRoomInfo get room info
 func (rpc *RpcLogic) GetRoomInfo(ctx context.Context, args *proto.Send, reply *proto.SuccessReply) (err error) {
 	reply.Code = config.FailReplyCode
 	logic := new(Logic)

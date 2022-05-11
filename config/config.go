@@ -1,9 +1,10 @@
+package config
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 15:24
  */
-package config
 
 import (
 	"github.com/spf13/viper"
@@ -13,16 +14,18 @@ import (
 	"sync"
 )
 
-var once sync.Once
-var realPath string
-var Conf *Config
+var (
+	//realPath string
+	once sync.Once
+	Conf *Config
+)
 
 const (
 	SuccessReplyCode      = 0
 	FailReplyCode         = 1
 	SuccessReplyMsg       = "success"
 	QueueName             = "gochat_queue"
-	RedisBaseValidTime    = 86400
+	RedisBaseValidTime    = 86400 // 设置redis对应key的基本有效时间
 	RedisPrefix           = "gochat_"
 	RedisRoomPrefix       = "gochat_room_"
 	RedisRoomOnlinePrefix = "gochat_room_online_count_"
@@ -93,16 +96,17 @@ func Init() {
 			panic(err)
 		}
 		Conf = new(Config)
-		viper.Unmarshal(&Conf.Common)
-		viper.Unmarshal(&Conf.Connect)
-		viper.Unmarshal(&Conf.Task)
-		viper.Unmarshal(&Conf.Logic)
-		viper.Unmarshal(&Conf.Api)
-		viper.Unmarshal(&Conf.Site)
+		_ = viper.Unmarshal(&Conf.Common)
+		_ = viper.Unmarshal(&Conf.Connect)
+		_ = viper.Unmarshal(&Conf.Task)
+		_ = viper.Unmarshal(&Conf.Logic)
+		_ = viper.Unmarshal(&Conf.Api)
+		_ = viper.Unmarshal(&Conf.Site)
 	})
 }
 
 func GetMode() string {
+	// 在Dockerfile里面设置环境变量RUN_MODE默认为dev
 	env := os.Getenv("RUN_MODE")
 	if env == "" {
 		env = "dev"
@@ -151,7 +155,7 @@ type ConnectBase struct {
 	KeyPath  string `mapstructure:"keyPath"`
 }
 
-type ConnectRpcAddressWebsockts struct {
+type ConnectRpcAddressWebsockets struct {
 	Address string `mapstructure:"address"`
 }
 
@@ -188,12 +192,12 @@ type ConnectTcp struct {
 }
 
 type ConnectConfig struct {
-	ConnectBase                ConnectBase                `mapstructure:"connect-base"`
-	ConnectRpcAddressWebSockts ConnectRpcAddressWebsockts `mapstructure:"connect-rpcAddress-websockts"`
-	ConnectRpcAddressTcp       ConnectRpcAddressTcp       `mapstructure:"connect-rpcAddress-tcp"`
-	ConnectBucket              ConnectBucket              `mapstructure:"connect-bucket"`
-	ConnectWebsocket           ConnectWebsocket           `mapstructure:"connect-websocket"`
-	ConnectTcp                 ConnectTcp                 `mapstructure:"connect-tcp"`
+	ConnectBase                 ConnectBase                 `mapstructure:"connect-base"`
+	ConnectRpcAddressWebSockets ConnectRpcAddressWebsockets `mapstructure:"connect-rpcAddress-websockets"`
+	ConnectRpcAddressTcp        ConnectRpcAddressTcp        `mapstructure:"connect-rpcAddress-tcp"`
+	ConnectBucket               ConnectBucket               `mapstructure:"connect-bucket"`
+	ConnectWebsocket            ConnectWebsocket            `mapstructure:"connect-websocket"`
+	ConnectTcp                  ConnectTcp                  `mapstructure:"connect-tcp"`
 }
 
 type LogicBase struct {

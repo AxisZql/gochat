@@ -1,10 +1,10 @@
+package tools
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 16:00
  */
-package tools
-
 import (
 	"fmt"
 	"strings"

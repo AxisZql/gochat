@@ -1,10 +1,10 @@
+package db
+
 /**
  * Created by lock
  * Date: 2019-09-22
  * Time: 22:37
  */
-package db
-
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -25,8 +25,9 @@ func init() {
 func initDB(dbName string) {
 	var e error
 	// if prod env , you should change mysql driver for yourself !!!
-	realPath, _ := filepath.Abs("./")
+	realPath, _ := filepath.Abs("./") // 获取项目根目录的绝对路径
 	configFilePath := realPath + "/db/gochat.sqlite3"
+	//单例模式初始化是非并发安全的，所以要加锁
 	syncLock.Lock()
 	dbMap[dbName], e = gorm.Open("sqlite3", configFilePath)
 	dbMap[dbName].DB().SetMaxIdleConns(4)

@@ -80,7 +80,7 @@ func (rpc *RpcConnect) DisConnect(disConnReq *proto.DisConnectRequest) (err erro
 
 func (c *Connect) InitConnectWebsocketRpcServer() (err error) {
 	var network, addr string
-	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressWebSockts.Address, ",")
+	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressWebSockets.Address, ",")
 	for _, bind := range connectRpcAddress {
 		if network, addr, err = tools.ParseNetwork(bind); err != nil {
 			logrus.Panicf("InitConnectWebsocketRpcServer ParseNetwork error : %s", err)

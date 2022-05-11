@@ -1,9 +1,10 @@
+package logic
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 15:44
  */
-package logic
 
 import (
 	"bytes"
@@ -55,20 +56,24 @@ func (logic *Logic) InitRpcServer() (err error) {
 
 func (logic *Logic) createRpcServer(network string, addr string) {
 	s := server.NewServer()
+	// etcd 注册配置，将服务注册到etcd中
 	logic.addRegistryPlugin(s, network, addr)
 	// serverId must be unique
 	//err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathLogic, new(RpcLogic), fmt.Sprintf("%s", config.Conf.Logic.LogicBase.ServerId))
+	//将RpcLogic的Rpc服务全部注册
 	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathLogic, new(RpcLogic), fmt.Sprintf("%s", logic.ServerId))
 	if err != nil {
 		logrus.Errorf("register error:%s", err.Error())
 	}
 	s.RegisterOnShutdown(func(s *server.Server) {
-		s.UnregisterAll()
+		// 服务关闭时，注销所有注册的服务
+		_ = s.UnregisterAll()
 	})
-	s.Serve(network, addr)
+	_ = s.Serve(network, addr)
 }
 
 func (logic *Logic) addRegistryPlugin(s *server.Server, network string, addr string) {
+	// etcd 注册配置，将服务注册到etcd中
 	r := &serverplugin.EtcdV3RegisterPlugin{
 		ServiceAddress: network + "@" + addr,
 		EtcdServers:    []string{config.Conf.Common.CommonEtcd.Host},
@@ -76,6 +81,7 @@ func (logic *Logic) addRegistryPlugin(s *server.Server, network string, addr str
 		Metrics:        metrics.NewRegistry(),
 		UpdateInterval: time.Minute,
 	}
+	// 开始连接etcd集群
 	err := r.Start()
 	if err != nil {
 		logrus.Fatal(err)

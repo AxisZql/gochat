@@ -1,9 +1,10 @@
+package tools
+
 /**
  * Created by lock
  * Date: 2019-08-18
  * Time: 18:03
  */
-package tools
 
 import (
 	"crypto/rand"
@@ -27,6 +28,7 @@ func GetSnowflakeId() string {
 
 func GetRandomToken(length int) string {
 	r := make([]byte, length)
+	// rand.Reader是一个全局的、共享的加密安全随机数发生器实例。
 	io.ReadFull(rand.Reader, r)
 	return base64.URLEncoding.EncodeToString(r)
 }
