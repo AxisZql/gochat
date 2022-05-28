@@ -1,9 +1,10 @@
+package main
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 10:56
  */
-package main
 
 import (
 	"flag"
@@ -26,8 +27,10 @@ func main() {
 	fmt.Println(fmt.Sprintf("start run %s module", module))
 	switch module {
 	case "logic":
+		// rpc方式的服务
 		logic.New().Run()
 	case "connect_websocket":
+		// websocket 方式的服务
 		connect.New().Run()
 	case "connect_tcp":
 		connect.New().RunTcp()

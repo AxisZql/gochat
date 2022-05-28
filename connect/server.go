@@ -1,15 +1,15 @@
+package connect
+
 /**
  * Created by lock
  * Date: 2019-08-10
  * Time: 18:32
  */
-package connect
-
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
+	"github.com/gorilla/websocket" // websocket第三方库
+	"github.com/sirupsen/logrus"   // 日志库
 	"gochat/proto"
 	"gochat/tools"
 	"time"
@@ -41,7 +41,7 @@ func NewServer(b []*Bucket, o Operator, options ServerOptions) *Server {
 	return s
 }
 
-//reduce lock competition, use google city hash insert to different bucket
+// Bucket reduce lock competition, use Google city hash insert to different bucket
 func (s *Server) Bucket(userId int) *Bucket {
 	userIdStr := fmt.Sprintf("%d", userId)
 	idx := tools.CityHash32([]byte(userIdStr), uint32(len(userIdStr))) % s.bucketIdx

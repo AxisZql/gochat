@@ -1,10 +1,10 @@
+package connect
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 15:18
  */
-package connect
-
 import (
 	"gochat/proto"
 	"sync"
@@ -85,11 +85,15 @@ func (b *Bucket) Put(userId int, roomId int, ch *Channel) (err error) {
 	return
 }
 
+// DeleteChannel 删除对应对用户会话
 func (b *Bucket) DeleteChannel(ch *Channel) {
 	var (
 		ok   bool
 		room *Room
 	)
+	// TODO：这里涉及对数据对写操作，为什么加读锁，而不是写锁
+	// 是否因为多个Channel（用户会话）是相互独立对原因，写锁对话，其他用户就不能进行
+	// 任何状态修改操作
 	b.cLock.RLock()
 	if ch, ok = b.chs[ch.userId]; ok {
 		room = b.chs[ch.userId].Room
@@ -113,6 +117,7 @@ func (b *Bucket) Channel(userId int) (ch *Channel) {
 }
 
 func (b *Bucket) BroadcastRoom(pushRoomMsgReq *proto.PushRoomMsgRequest) {
+	// TODO：原子加法,记录所有请求数，bucketOptions.RoutineAmount 限定了系统最多同时RoutineAmount个请求
 	num := atomic.AddUint64(&b.routinesNum, 1) % b.bucketOptions.RoutineAmount
 	b.routines[num] <- pushRoomMsgReq
 }

@@ -201,6 +201,7 @@ func (rpc *RpcLogic) Push(ctx context.Context, args *proto.Send, reply *proto.Su
 		logrus.Errorf("logic,push parse int fail:%s", err.Error())
 		return
 	}
+	// 将消息写入消息队列
 	err = logic.RedisPublishChannel(serverIdStr, sendData.ToUserId, bodyBytes)
 	if err != nil {
 		logrus.Errorf("logic,redis publish err: %s", err.Error())
@@ -218,6 +219,7 @@ func (rpc *RpcLogic) PushRoom(ctx context.Context, args *proto.Send, reply *prot
 	logic := new(Logic)
 	roomUserInfo := make(map[string]string)
 	roomUserKey := logic.getRoomUserKey(strconv.Itoa(roomId))
+	// 从redis中获取room中所有用户的信息，room的信息放在set中
 	roomUserInfo, err = RedisClient.HGetAll(roomUserKey).Result()
 	if err != nil {
 		logrus.Errorf("logic,PushRoom redis hGetAll err:%s", err.Error())
@@ -238,6 +240,7 @@ func (rpc *RpcLogic) PushRoom(ctx context.Context, args *proto.Send, reply *prot
 		logrus.Errorf("logic,PushRoom Marshal err:%s", err.Error())
 		return
 	}
+	// 把发到聊天室的消息写入redis的消息队列
 	err = logic.RedisPublishRoomInfo(roomId, len(roomUserInfo), roomUserInfo, bodyBytes)
 	if err != nil {
 		logrus.Errorf("logic,PushRoom err:%s", err.Error())

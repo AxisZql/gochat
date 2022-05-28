@@ -1,10 +1,10 @@
+package connect
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 18:18
  */
-package connect
-
 import (
 	"fmt"
 	"github.com/google/uuid"
@@ -33,10 +33,12 @@ func (c *Connect) Run() {
 	runtime.GOMAXPROCS(connectConfig.ConnectBucket.CpuNum)
 
 	//init logic layer rpc client, call logic layer rpc server
+	//初始化rpc逻辑层客户端，调用rpc逻辑层服务端
 	if err := c.InitLogicRpcClient(); err != nil {
 		logrus.Panicf("InitLogicRpcClient err:%s", err.Error())
 	}
 	//init Connect layer rpc server, logic client will call this
+	//初始化连接层RPC服务器，逻辑客户端将调用此,设定多少核cpu那就初始化多少个桶（bucket）
 	Buckets := make([]*Bucket, connectConfig.ConnectBucket.CpuNum)
 	for i := 0; i < connectConfig.ConnectBucket.CpuNum; i++ {
 		Buckets[i] = NewBucket(BucketOptions{

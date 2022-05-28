@@ -1,10 +1,10 @@
+package connect
+
 /**
  * Created by lock
  * Date: 2019-08-09
  * Time: 15:18
  */
-package connect
-
 import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -1,10 +1,11 @@
+package connect
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 23:36
+ * Desc: rpc客户端
  */
-package connect
-
 import (
 	"context"
 	"errors"
@@ -30,7 +31,9 @@ var once sync.Once
 type RpcConnect struct {
 }
 
+// InitLogicRpcClient 利用etcd服务发现来初始化调用rpc到客户端
 func (c *Connect) InitLogicRpcClient() (err error) {
+	// 连接到etcd服务需要进行到配置
 	etcdConfigOption := &store.Config{
 		ClientTLS:         nil,
 		TLS:               nil,
@@ -59,8 +62,10 @@ func (c *Connect) InitLogicRpcClient() (err error) {
 	return
 }
 
+// Connect 初始化聊天室上线连接
 func (rpc *RpcConnect) Connect(connReq *proto.ConnectRequest) (uid int, err error) {
 	reply := &proto.ConnectReply{}
+	// 调用远程rpc方法--connect
 	err = logicRpcClient.Call(context.Background(), "Connect", connReq, reply)
 	if err != nil {
 		logrus.Fatalf("failed to call: %v", err)
@@ -72,21 +77,26 @@ func (rpc *RpcConnect) Connect(connReq *proto.ConnectRequest) (uid int, err erro
 
 func (rpc *RpcConnect) DisConnect(disConnReq *proto.DisConnectRequest) (err error) {
 	reply := &proto.DisConnectReply{}
+	/// 调用离线rpc方法
 	if err = logicRpcClient.Call(context.Background(), "DisConnect", disConnReq, reply); err != nil {
 		logrus.Fatalf("failed to call: %v", err)
 	}
 	return
 }
 
+// InitConnectWebsocketRpcServer  初始化化WebSocketRpc服务
 func (c *Connect) InitConnectWebsocketRpcServer() (err error) {
 	var network, addr string
+	//[connect-rpcAddress-websocket]
+	//address = "tcp@0.0.0.0:6912,tcp@0.0.0.0:6913"---> webSocket在6912和6913上起服务
 	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressWebSockets.Address, ",")
 	for _, bind := range connectRpcAddress {
+		// tools.ParseNetwork 就是简单的字符串分隔函数--> tcp@0.0.0.0:6912 --> tcp,0.0.0.0:6912
 		if network, addr, err = tools.ParseNetwork(bind); err != nil {
 			logrus.Panicf("InitConnectWebsocketRpcServer ParseNetwork error : %s", err)
 		}
 		logrus.Infof("Connect start run at-->%s:%s", network, addr)
-		go c.createConnectWebsocktsRpcServer(network, addr)
+		go c.createConnectWebsocketsRpcServer(network, addr)
 	}
 	return
 }
@@ -104,9 +114,10 @@ func (c *Connect) InitConnectTcpRpcServer() (err error) {
 	return
 }
 
-type RpcConnectPush struct {
-}
+// RpcConnectPush 定义Connection的rpc服务
+type RpcConnectPush struct{}
 
+// PushSingleMsg 私聊消息
 func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.PushMsgRequest, successReply *proto.SuccessReply) (err error) {
 	var (
 		bucket  *Bucket
@@ -117,8 +128,11 @@ func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.
 		logrus.Errorf("rpc PushSingleMsg() args:(%v)", pushMsgReq)
 		return
 	}
+	// TODO：获取令牌桶
 	bucket = DefaultServer.Bucket(pushMsgReq.UserId)
+	// 获取令牌桶后，接着或者用户会话实例
 	if channel = bucket.Channel(pushMsgReq.UserId); channel != nil {
+		// 往广播channel中写入消息体中
 		err = channel.Push(&pushMsgReq.Msg)
 		logrus.Infof("DefaultServer Channel err nil ,args: %v", pushMsgReq)
 		return
@@ -129,6 +143,7 @@ func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.
 	return
 }
 
+// PushRoomMsg 群聊消息
 func (rpc *RpcConnectPush) PushRoomMsg(ctx context.Context, pushRoomMsgReq *proto.PushRoomMsgRequest, successReply *proto.SuccessReply) (err error) {
 	successReply.Code = config.SuccessReplyCode
 	successReply.Msg = config.SuccessReplyMsg
@@ -159,16 +174,26 @@ func (rpc *RpcConnectPush) PushRoomInfo(ctx context.Context, pushRoomMsgReq *pro
 	return
 }
 
-func (c *Connect) createConnectWebsocktsRpcServer(network string, addr string) {
+func (c *Connect) createConnectWebsocketsRpcServer(network string, addr string) {
 	s := server.NewServer()
+	// 添加etcd配置并连接etcd集群
 	addRegistryPlugin(s, network, addr)
 	//config.Conf.Connect.ConnectTcp.ServerId
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	if err != nil {
+		logrus.Errorf(fmt.Sprintf("%+v", err))
+	}
 	s.RegisterOnShutdown(func(s *server.Server) {
-		s.UnregisterAll()
+		err = s.UnregisterAll()
+		if err != nil {
+			logrus.Errorf(fmt.Sprintf("%+v", err))
+		}
 	})
-	s.Serve(network, addr)
+	err = s.Serve(network, addr)
+	if err != nil {
+		logrus.Errorf(fmt.Sprintf("%+v", err))
+	}
 }
 
 func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
@@ -182,17 +207,25 @@ func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
 	s.Serve(network, addr)
 }
 
+// 添加etcd配置并连接etcd集群
 func addRegistryPlugin(s *server.Server, network string, addr string) {
 	r := &serverplugin.EtcdV3RegisterPlugin{
+		// 本机监听地址
 		ServiceAddress: network + "@" + addr,
-		EtcdServers:    []string{config.Conf.Common.CommonEtcd.Host},
-		BasePath:       config.Conf.Common.CommonEtcd.BasePath,
-		Metrics:        metrics.NewRegistry(),
+		// etcd集群的地址
+		EtcdServers: []string{config.Conf.Common.CommonEtcd.Host},
+		// 服务前缀。如果有多个项目同时使用zookeeper，避免命名冲突，可以设置这个参数，为当前服务的设置命名空间
+		BasePath: config.Conf.Common.CommonEtcd.BasePath,
+		// TODO：·不清楚· 用来更新服务的TPS
+		Metrics: metrics.NewRegistry(),
+		// 服务的刷新间隔，如果在一定间隔内（当前设2*UpdateInterval）没有刷新，服务就会从etcd中删除
 		UpdateInterval: time.Minute,
 	}
+	// 开始连接etcd集群
 	err := r.Start()
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	// 当前服务添加etcd配置
 	s.Plugins.Add(r)
 }

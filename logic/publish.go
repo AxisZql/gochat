@@ -69,6 +69,7 @@ func (logic *Logic) createRpcServer(network string, addr string) {
 		// 服务关闭时，注销所有注册的服务
 		_ = s.UnregisterAll()
 	})
+	// 启动服务
 	_ = s.Serve(network, addr)
 }
 
@@ -89,6 +90,7 @@ func (logic *Logic) addRegistryPlugin(s *server.Server, network string, addr str
 	s.Plugins.Add(r)
 }
 
+// RedisPublishChannel 把消息写入redis的消息队列
 func (logic *Logic) RedisPublishChannel(serverId string, toUserId int, msg []byte) (err error) {
 	redisMsg := proto.RedisMsg{
 		Op:       config.OpSingleSend,

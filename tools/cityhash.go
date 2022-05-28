@@ -244,7 +244,7 @@ func CityHash32(s []byte, length uint32) uint32 {
 	f = rotate32(f, 19)
 	f = f*5 + 0xe6546b64
 
-	var iters uint32 = (length - 1) / 20
+	var items uint32 = (length - 1) / 20
 	for {
 		var a0 uint32 = rotate32(fetch32(s)*c1, 17) * c2
 		var a1 uint32 = fetch32(s[4:])
@@ -271,8 +271,8 @@ func CityHash32(s []byte, length uint32) uint32 {
 		permute3(&f, &h, &g)
 		s = s[20:]
 
-		iters--
-		if iters == 0 {
+		items--
+		if items == 0 {
 			break
 		}
 	}
@@ -323,9 +323,9 @@ func hash128to64(x Uint128) uint64 {
 	// Murmur-inspired hashing.
 	const kMul uint64 = 0x9ddfea08eb382d69
 	var a uint64 = (x.Lower64() ^ x.Higher64()) * kMul
-	a ^= (a >> 47)
+	a ^= a >> 47
 	var b uint64 = (x.Higher64() ^ a) * kMul
-	b ^= (b >> 47)
+	b ^= b >> 47
 	b *= kMul
 	return b
 }
@@ -337,9 +337,9 @@ func hashLen16(u, v uint64) uint64 {
 func hashLen16_3(u, v, mul uint64) uint64 {
 	// Murmur-inspired hashing.
 	var a uint64 = (u ^ v) * mul
-	a ^= (a >> 47)
+	a ^= a >> 47
 	var b uint64 = (v ^ a) * mul
-	b ^= (b >> 47)
+	b ^= b >> 47
 	b *= mul
 	return b
 }
