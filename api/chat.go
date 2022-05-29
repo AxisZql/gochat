@@ -1,10 +1,10 @@
+package api
+
 /**
  * Created by lock
  * Date: 2019-08-12
  * Time: 11:17
  */
-package api
-
 import (
 	"context"
 	"flag"
@@ -33,10 +33,12 @@ func (c *Chat) Run() {
 	//init rpc client
 	rpc.InitLogicRpcClient()
 
+	// 注册路由和中间件
 	r := router.Register()
 	runMode := config.GetGinRunMode()
 	logrus.Info("server start , now run mode is ", runMode)
 	gin.SetMode(runMode)
+	// 项目默认配置的api端口为7070
 	apiConfig := config.Conf.Api
 	port := apiConfig.ApiBase.ListenPort
 	flag.Parse()
@@ -52,6 +54,7 @@ func (c *Chat) Run() {
 		}
 	}()
 	// if have two quit signal , this signal will priority capture ,also can graceful shutdown
+	// 信号捕获，优雅退出
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit

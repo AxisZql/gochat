@@ -33,15 +33,16 @@ type Instance struct {
 }
 
 type RpcConnectClient struct {
-	lock         sync.Mutex
-	ServerInsMap map[string][]Instance //serverId--[]ins
-	IndexMap     map[string]int        //serverId--index
+	lock         sync.Mutex            // 本项目中同一个serverId有两个实例
+	ServerInsMap map[string][]Instance //serverId--[]ins TODO:一个ServerId对应多个实例？采用这种策略来降低因为早期版本中一个ServerId对应一个实例，造成消息丢失的概率？
+	IndexMap     map[string]int        //serverId--index // 下一个轮询的索引
 }
 
 func (rc *RpcConnectClient) GetRpcClientByServerId(serverId string) (c client.XClient, err error) {
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 	if _, ok := rc.ServerInsMap[serverId]; !ok || len(rc.ServerInsMap[serverId]) <= 0 {
+		// 对应serverId对应实例都无法使用的情况
 		return nil, errors.New("no connect layer ip:" + serverId)
 	}
 	if _, ok := rc.IndexMap[serverId]; !ok {
@@ -49,13 +50,16 @@ func (rc *RpcConnectClient) GetRpcClientByServerId(serverId string) (c client.XC
 			serverId: 0,
 		}
 	}
+	// idx范围是0---len(rc.ServerInsMap[serverId])-1
 	idx := rc.IndexMap[serverId] % len(rc.ServerInsMap[serverId])
 	ins := rc.ServerInsMap[serverId][idx]
+	// 轮询实例
 	rc.IndexMap[serverId] = (rc.IndexMap[serverId] + 1) % len(rc.ServerInsMap[serverId])
 	return ins.Client, nil
 }
 
 func (rc *RpcConnectClient) GetAllConnectTypeRpcClient() (rpcClientList []client.XClient) {
+	// 获取所有connect类型的Rpc Client
 	for serverId := range rc.ServerInsMap {
 		c, err := rc.GetRpcClientByServerId(serverId)
 		if err != nil {
@@ -124,6 +128,7 @@ func (task *Task) InitConnectRpcClient() (err error) {
 			ServerId:   serverId,
 			Client:     c,
 		}
+		// 相同的serverId加入同一个实例slice中
 		if _, ok := RClient.ServerInsMap[serverId]; !ok {
 			RClient.ServerInsMap[serverId] = []Instance{ins}
 		} else {
@@ -159,17 +164,17 @@ func (task *Task) watchServicesChange(d client.ServiceDiscovery) {
 				logrus.Errorf("init task client.NewPeer2PeerDiscovery watch client fail:%s", e.Error())
 				continue
 			}
-        // older--version
-		// 	syncLock.Lock() //如果把锁加到for语句下面，则会阻塞所有没有发生异常的服务
-		// 	// 随机获取connect层中可用的服务
-		// 	RpcConnectClientList[serverId] = client.NewXClient(etcdConfig.ServerPathConnect, client.Failtry, client.RandomSelect, d, client.DefaultOption)
-		// 	syncLock.Unlock()
-		// }
-		// syncLock.Lock()
-		// for oldServerId := range RpcConnectClientList {
-		// 	if _, ok := newServerIdMap[oldServerId]; !ok {
-		// 		// 从服务列表中删除已经失效的服务
-		// 		delete(RpcConnectClientList, oldServerId)
+			// older--version
+			// 	syncLock.Lock() //如果把锁加到for语句下面，则会阻塞所有没有发生异常的服务
+			// 	// 随机获取connect层中可用的服务
+			// 	RpcConnectClientList[serverId] = client.NewXClient(etcdConfig.ServerPathConnect, client.Failtry, client.RandomSelect, d, client.DefaultOption)
+			// 	syncLock.Unlock()
+			// }
+			// syncLock.Lock()
+			// for oldServerId := range RpcConnectClientList {
+			// 	if _, ok := newServerIdMap[oldServerId]; !ok {
+			// 		// 从服务列表中删除已经失效的服务
+			// 		delete(RpcConnectClientList, oldServerId)
 			c := client.NewXClient(etcdConfig.ServerPathConnect, client.Failtry, client.RandomSelect, d, client.DefaultOption)
 			ins := Instance{
 				ServerType: serverType,
@@ -182,6 +187,7 @@ func (task *Task) watchServicesChange(d client.ServiceDiscovery) {
 				insMap[serverId] = append(insMap[serverId], ins)
 			}
 		}
+		// 更新可以的服务实例表
 		RClient.lock.Lock()
 		RClient.ServerInsMap = insMap
 		RClient.lock.Unlock()
@@ -201,26 +207,28 @@ func (task *Task) pushSingleToConnect(serverId string, userId int, msg []byte) {
 		},
 	}
 	reply := &proto.SuccessReply{}
-// <<<<<<< HEAD old version
-// 	//todo lock，这里需要上读锁吗？在这里上锁的话如果watchServicesChange监听到服务状态发生改变？
-// 	//从根据serverId选择对应的服务，后调用对应的rpc服务
-// 	// TODO: 这里使用的serverId很可能是已经失效了的服务，（此处调用的是Connect层提供的rpc服务），
-// 	//因为检测服务时，如果服务改变
+	// <<<<<<< HEAD old version
+	// 	//todo lock，这里需要上读锁吗？在这里上锁的话如果watchServicesChange监听到服务状态发生改变？
+	// 	//从根据serverId选择对应的服务，后调用对应的rpc服务
+	// 	// TODO: 这里使用的serverId很可能是已经失效了的服务，（此处调用的是Connect层提供的rpc服务），
+	// 	//因为检测服务时，如果服务改变
 
-// 	// fix bug:
-// 	if xxc, ok := RpcConnectClientList[serverId]; !ok {
-// 		// 如果对应connect的服务已经下线了，则把数据重新换一个可用的serverId写入redis中，
-// 		// TODO：为什么要引入serverId机制？？？，直接用能用的服务不行？？？
-// 		fmt.Println(xxc)
-// 	}
+	// 	// fix bug:
+	// 	if xxc, ok := RpcConnectClientList[serverId]; !ok {
+	// 		// 如果对应connect的服务已经下线了，则把数据重新换一个可用的serverId写入redis中，
+	// 		// TODO：为什么要引入serverId机制？？？，直接用能用的服务不行？？？
+	// 		fmt.Println(xxc)
+	// 	}
 
-// 	// 这里对应serverId 很可能不存在了（因为失效而被删除了）
-// 	err := RpcConnectClientList[serverId].Call(context.Background(), "PushSingleMsg", pushMsgReq, reply)
-// =======
+	// 	// 这里对应serverId 很可能不存在了（因为失效而被删除了）
+	// 	err := RpcConnectClientList[serverId].Call(context.Background(), "PushSingleMsg", pushMsgReq, reply)
+	// =======
 	connectRpc, err := RClient.GetRpcClientByServerId(serverId)
 	if err != nil {
 		logrus.Infof("get rpc client err %v", err)
 	}
+	// TODO：如果这里出现问题如因为当前服务器实例宕机，redis中的消息被取出来了但是没有进行消费（故要引入消息消费确认机制）
+	//或者直接告知对应发送消息
 	err = connectRpc.Call(context.Background(), "PushSingleMsg", pushMsgReq, reply)
 	if err != nil {
 		logrus.Infof("pushSingleToConnect Call err %v", err)
@@ -234,12 +242,13 @@ func (task *Task) broadcastRoomToConnect(roomId int, msg []byte) {
 		Msg: proto.Msg{
 			Ver:       config.MsgVersion,
 			Operation: config.OpRoomSend,
-			SeqId:     tools.GetSnowflakeId(),
+			SeqId:     tools.GetSnowflakeId(), // 获取雪花id
 			Body:      msg,
 		},
 	}
 	reply := &proto.SuccessReply{}
 	rpcList := RClient.GetAllConnectTypeRpcClient()
+	// 因为同一个房间的用户可能既有websocket、也有tcp通信
 	for _, rpc := range rpcList {
 		logrus.Infof("broadcastRoomToConnect rpc  %v", rpc)
 		rpc.Call(context.Background(), "PushRoomMsg", pushRoomMsgReq, reply)

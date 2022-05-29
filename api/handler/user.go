@@ -28,7 +28,7 @@ func Login(c *gin.Context) {
 		Name:     formLogin.UserName,
 		Password: tools.Sha1(formLogin.Password),
 	}
-	code, authToken, msg := rpc.RpcLogicObj.Login(req)
+	code, authToken, msg := rpc.LogicObjRpc.Login(req)
 	if code == tools.CodeFail || authToken == "" {
 		tools.FailWithMsg(c, msg)
 		return
@@ -51,7 +51,7 @@ func Register(c *gin.Context) {
 		Name:     formRegister.UserName,
 		Password: tools.Sha1(formRegister.Password),
 	}
-	code, authToken, msg := rpc.RpcLogicObj.Register(req)
+	code, authToken, msg := rpc.LogicObjRpc.Register(req)
 	if code == tools.CodeFail || authToken == "" {
 		tools.FailWithMsg(c, msg)
 		return
@@ -73,7 +73,7 @@ func CheckAuth(c *gin.Context) {
 	req := &proto.CheckAuthRequest{
 		AuthToken: authToken,
 	}
-	code, userId, userName := rpc.RpcLogicObj.CheckAuth(req)
+	code, userId, userName := rpc.LogicObjRpc.CheckAuth(req)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "auth fail")
 		return
@@ -99,7 +99,7 @@ func Logout(c *gin.Context) {
 	logoutReq := &proto.LogoutRequest{
 		AuthToken: authToken,
 	}
-	code := rpc.RpcLogicObj.Logout(logoutReq)
+	code := rpc.LogicObjRpc.Logout(logoutReq)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "logout fail!")
 		return

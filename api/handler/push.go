@@ -33,13 +33,13 @@ func Push(c *gin.Context) {
 	toUserId := formPush.ToUserId
 	toUserIdInt, _ := strconv.Atoi(toUserId)
 	getUserNameReq := &proto.GetUserInfoRequest{UserId: toUserIdInt}
-	code, toUserName := rpc.RpcLogicObj.GetUserNameByUserId(getUserNameReq)
+	code, toUserName := rpc.LogicObjRpc.GetUserNameByUserId(getUserNameReq)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc fail get friend userName")
 		return
 	}
 	checkAuthReq := &proto.CheckAuthRequest{AuthToken: authToken}
-	code, fromUserId, fromUserName := rpc.RpcLogicObj.CheckAuth(checkAuthReq)
+	code, fromUserId, fromUserName := rpc.LogicObjRpc.CheckAuth(checkAuthReq)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc fail get self info")
 		return
@@ -54,7 +54,7 @@ func Push(c *gin.Context) {
 		RoomId:       roomId,
 		Op:           config.OpSingleSend,
 	}
-	code, rpcMsg := rpc.RpcLogicObj.Push(req)
+	code, rpcMsg := rpc.LogicObjRpc.Push(req)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, rpcMsg)
 		return
@@ -79,7 +79,7 @@ func PushRoom(c *gin.Context) {
 	msg := formRoom.Msg
 	roomId := formRoom.RoomId
 	checkAuthReq := &proto.CheckAuthRequest{AuthToken: authToken}
-	authCode, fromUserId, fromUserName := rpc.RpcLogicObj.CheckAuth(checkAuthReq)
+	authCode, fromUserId, fromUserName := rpc.LogicObjRpc.CheckAuth(checkAuthReq)
 	if authCode == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc fail get self info")
 		return
@@ -91,7 +91,7 @@ func PushRoom(c *gin.Context) {
 		RoomId:       roomId,
 		Op:           config.OpRoomSend,
 	}
-	code, msg := rpc.RpcLogicObj.PushRoom(req)
+	code, msg := rpc.LogicObjRpc.PushRoom(req)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc push room msg fail!")
 		return
@@ -115,7 +115,7 @@ func Count(c *gin.Context) {
 		RoomId: roomId,
 		Op:     config.OpRoomCountSend,
 	}
-	code, msg := rpc.RpcLogicObj.Count(req)
+	code, msg := rpc.LogicObjRpc.Count(req)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc get room count fail!")
 		return
@@ -139,7 +139,7 @@ func GetRoomInfo(c *gin.Context) {
 		RoomId: roomId,
 		Op:     config.OpRoomInfoSend,
 	}
-	code, msg := rpc.RpcLogicObj.GetRoomInfo(req)
+	code, msg := rpc.LogicObjRpc.GetRoomInfo(req)
 	if code == tools.CodeFail {
 		tools.FailWithMsg(c, "rpc get room info fail!")
 		return

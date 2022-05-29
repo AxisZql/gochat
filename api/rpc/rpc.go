@@ -21,10 +21,10 @@ import (
 var LogicRpcClient client.XClient
 var once sync.Once
 
-type RpcLogic struct {
+type LogicRpc struct {
 }
 
-var RpcLogicObj *RpcLogic
+var LogicObjRpc *LogicRpc
 
 func InitLogicRpcClient() {
 	once.Do(func() {
@@ -47,15 +47,16 @@ func InitLogicRpcClient() {
 		if err != nil {
 			logrus.Fatalf("init connect rpc etcd discovery client fail:%s", err.Error())
 		}
+		// 按照一定规则从etcd注册中心选出一个服务器
 		LogicRpcClient = client.NewXClient(config.Conf.Common.CommonEtcd.ServerPathLogic, client.Failtry, client.RandomSelect, d, client.DefaultOption)
-		RpcLogicObj = new(RpcLogic)
+		LogicObjRpc = new(LogicRpc)
 	})
 	if LogicRpcClient == nil {
 		logrus.Fatalf("get logic rpc client nil")
 	}
 }
 
-func (rpc *RpcLogic) Login(req *proto.LoginRequest) (code int, authToken string, msg string) {
+func (rpc *LogicRpc) Login(req *proto.LoginRequest) (code int, authToken string, msg string) {
 	reply := &proto.LoginResponse{}
 	err := LogicRpcClient.Call(context.Background(), "Login", req, reply)
 	if err != nil {
@@ -66,7 +67,7 @@ func (rpc *RpcLogic) Login(req *proto.LoginRequest) (code int, authToken string,
 	return
 }
 
-func (rpc *RpcLogic) Register(req *proto.RegisterRequest) (code int, authToken string, msg string) {
+func (rpc *LogicRpc) Register(req *proto.RegisterRequest) (code int, authToken string, msg string) {
 	reply := &proto.RegisterReply{}
 	err := LogicRpcClient.Call(context.Background(), "Register", req, reply)
 	if err != nil {
@@ -77,57 +78,78 @@ func (rpc *RpcLogic) Register(req *proto.RegisterRequest) (code int, authToken s
 	return
 }
 
-func (rpc *RpcLogic) GetUserNameByUserId(req *proto.GetUserInfoRequest) (code int, userName string) {
+func (rpc *LogicRpc) GetUserNameByUserId(req *proto.GetUserInfoRequest) (code int, userName string) {
 	reply := &proto.GetUserInfoResponse{}
-	LogicRpcClient.Call(context.Background(), "GetUserInfoByUserId", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "GetUserInfoByUserId", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	userName = reply.UserName
 	return
 }
 
-func (rpc *RpcLogic) CheckAuth(req *proto.CheckAuthRequest) (code int, userId int, userName string) {
+func (rpc *LogicRpc) CheckAuth(req *proto.CheckAuthRequest) (code int, userId int, userName string) {
 	reply := &proto.CheckAuthResponse{}
-	LogicRpcClient.Call(context.Background(), "CheckAuth", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "CheckAuth", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	userId = reply.UserId
 	userName = reply.UserName
 	return
 }
 
-func (rpc *RpcLogic) Logout(req *proto.LogoutRequest) (code int) {
+func (rpc *LogicRpc) Logout(req *proto.LogoutRequest) (code int) {
 	reply := &proto.LogoutResponse{}
-	LogicRpcClient.Call(context.Background(), "Logout", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "Logout", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	return
 }
 
-func (rpc *RpcLogic) Push(req *proto.Send) (code int, msg string) {
+func (rpc *LogicRpc) Push(req *proto.Send) (code int, msg string) {
 	reply := &proto.SuccessReply{}
-	LogicRpcClient.Call(context.Background(), "Push", req, reply)
-	code = reply.Code
-	msg = reply.Msg
-	return
-}
-
-func (rpc *RpcLogic) PushRoom(req *proto.Send) (code int, msg string) {
-	reply := &proto.SuccessReply{}
-	LogicRpcClient.Call(context.Background(), "PushRoom", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "Push", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	msg = reply.Msg
 	return
 }
 
-func (rpc *RpcLogic) Count(req *proto.Send) (code int, msg string) {
+func (rpc *LogicRpc) PushRoom(req *proto.Send) (code int, msg string) {
 	reply := &proto.SuccessReply{}
-	LogicRpcClient.Call(context.Background(), "Count", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "PushRoom", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	msg = reply.Msg
 	return
 }
 
-func (rpc *RpcLogic) GetRoomInfo(req *proto.Send) (code int, msg string) {
+func (rpc *LogicRpc) Count(req *proto.Send) (code int, msg string) {
 	reply := &proto.SuccessReply{}
-	LogicRpcClient.Call(context.Background(), "GetRoomInfo", req, reply)
+	err := LogicRpcClient.Call(context.Background(), "Count", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
+	code = reply.Code
+	msg = reply.Msg
+	return
+}
+
+func (rpc *LogicRpc) GetRoomInfo(req *proto.Send) (code int, msg string) {
+	reply := &proto.SuccessReply{}
+	err := LogicRpcClient.Call(context.Background(), "GetRoomInfo", req, reply)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
 	code = reply.Code
 	msg = reply.Msg
 	return

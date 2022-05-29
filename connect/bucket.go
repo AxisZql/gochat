@@ -123,7 +123,7 @@ func (b *Bucket) Channel(userId int) (ch *Channel) {
 }
 
 func (b *Bucket) BroadcastRoom(pushRoomMsgReq *proto.PushRoomMsgRequest) {
-	// TODO：原子加法,记录所有请求数，bucketOptions.RoutineAmount 限定了系统最多同时RoutineAmount个请求
+	//TODO：原子加法,记录所有请求数，bucketOptions.RoutineAmount 限定了系统最多同时RoutineAmount个请求
 	num := atomic.AddUint64(&b.routinesNum, 1) % b.bucketOptions.RoutineAmount
 	b.routines[num] <- pushRoomMsgReq
 }

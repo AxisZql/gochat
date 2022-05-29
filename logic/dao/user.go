@@ -1,10 +1,10 @@
+package dao
+
 /**
  * Created by lock
  * Date: 2019-09-22
  * Time: 22:53
  */
-package dao
-
 import (
 	"github.com/pkg/errors"
 	"gochat/db"

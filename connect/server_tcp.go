@@ -118,6 +118,7 @@ func (c *Connect) readDataFromTcp(s *Server, ch *Channel) {
 		disConnectRequest := new(proto.DisConnectRequest)
 		disConnectRequest.RoomId = ch.Room.Id
 		disConnectRequest.UserId = ch.userId
+		// TODO: 每个服务实例在建立之初都初始化了令牌桶Bucket
 		s.Bucket(ch.userId).DeleteChannel(ch)
 		if err := s.operator.DisConnect(disConnectRequest); err != nil {
 			logrus.Warnf("DisConnect rpc err :%s", err.Error())
@@ -218,7 +219,7 @@ func (c *Connect) readDataFromTcp(s *Server, ch *Channel) {
 					Op:           config.OpRoomSend,
 				}
 				// 通过api层调用logic层的rpc服务，把消息发送到消息队列中
-				code, msg := rpc.RpcLogicObj.PushRoom(req)
+				code, msg := rpc.LogicObjRpc.PushRoom(req)
 				logrus.Infof("tcp conn push msg to room,err code is:%d,err msg is:%s", code, msg)
 			}
 		}

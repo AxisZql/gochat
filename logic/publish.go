@@ -111,6 +111,7 @@ func (logic *Logic) RedisPublishChannel(serverId string, toUserId int, msg []byt
 	return
 }
 
+// RedisPublishRoomInfo 群聊房间消息推送
 func (logic *Logic) RedisPublishRoomInfo(roomId int, count int, RoomUserInfo map[string]string, msg []byte) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:           config.OpRoomSend,
@@ -132,6 +133,7 @@ func (logic *Logic) RedisPublishRoomInfo(roomId int, count int, RoomUserInfo map
 	return
 }
 
+// RedisPushRoomCount 群聊房间在线人数推送
 func (logic *Logic) RedisPushRoomCount(roomId int, count int) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:     config.OpRoomCountSend,
@@ -151,6 +153,7 @@ func (logic *Logic) RedisPushRoomCount(roomId int, count int) (err error) {
 	return
 }
 
+// RedisPushRoomInfo 群聊房间信息消息推送
 func (logic *Logic) RedisPushRoomInfo(roomId int, count int, roomUserInfo map[string]string) (err error) {
 	var redisMsg = &proto.RedisMsg{
 		Op:           config.OpRoomInfoSend,
@@ -171,6 +174,7 @@ func (logic *Logic) RedisPushRoomInfo(roomId int, count int, roomUserInfo map[st
 	return
 }
 
+// getRoomUserKey  gochat_room_+param
 func (logic *Logic) getRoomUserKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisRoomPrefix)
@@ -178,6 +182,7 @@ func (logic *Logic) getRoomUserKey(authKey string) string {
 	return returnKey.String()
 }
 
+// getRoomOnlineCountKey gochat_room_online_count_+param
 func (logic *Logic) getRoomOnlineCountKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisRoomOnlinePrefix)
@@ -185,6 +190,7 @@ func (logic *Logic) getRoomOnlineCountKey(authKey string) string {
 	return returnKey.String()
 }
 
+// getUserKey gochat_+param
 func (logic *Logic) getUserKey(authKey string) string {
 	var returnKey bytes.Buffer
 	returnKey.WriteString(config.RedisPrefix)

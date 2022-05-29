@@ -1,10 +1,10 @@
+package router
+
 /**
  * Created by lock
  * Date: 2019-10-06
  * Time: 23:09
  */
-package router
-
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -54,6 +54,7 @@ type FormCheckSessionId struct {
 	AuthToken string `form:"authToken" json:"authToken" binding:"required"`
 }
 
+// CheckSessionId 检测用户是否登陆（是否持有凭证）
 func CheckSessionId() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var formCheckSessionId FormCheckSessionId
@@ -66,7 +67,7 @@ func CheckSessionId() gin.HandlerFunc {
 		req := &proto.CheckAuthRequest{
 			AuthToken: authToken,
 		}
-		code, userId, userName := rpc.RpcLogicObj.CheckAuth(req)
+		code, userId, userName := rpc.LogicObjRpc.CheckAuth(req)
 		if code == tools.CodeFail || userId <= 0 || userName == "" {
 			c.Abort()
 			tools.ResponseWithCode(c, tools.CodeSessionError, nil, nil)
@@ -77,6 +78,7 @@ func CheckSessionId() gin.HandlerFunc {
 	}
 }
 
+// CorsMiddleware 允许跨域的中间件
 func CorsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method

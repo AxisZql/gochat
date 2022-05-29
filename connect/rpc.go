@@ -133,10 +133,15 @@ func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.
 	}
 	// TODO：获取令牌桶
 	bucket = DefaultServer.Bucket(pushMsgReq.UserId)
-	// 获取令牌桶后，接着或者用户会话实例
+	// 获取令牌桶后，接着获取用户会话实例
 	if channel = bucket.Channel(pushMsgReq.UserId); channel != nil {
 		// 往广播channel中写入消息体中
 		err = channel.Push(&pushMsgReq.Msg)
+		// 如果对应用户接收消息的用户不在线则发送不了消息（TODO:缺乏离线消息机制是本项目的一个缺点）
+		// TODO：有一个想法用于支持离线消息（如果使用Kafka的话则为每个发送方建立一个独立的topic）
+		// TODO：私聊的话，两方都是消息的生产者，由服务端充当一个消费者
+		// TODO：群聊的话，群中所有用户都是消息的生产者，由服务端充当一个消费者
+		// 由于topic中的消息没有被消费则会一直存在，故达到离线消息的效果（接收方收到消息后会把消息持久化到数据库中）
 		logrus.Infof("DefaultServer Channel err nil ,args: %v", pushMsgReq)
 		return
 	}
@@ -193,7 +198,7 @@ func (c *Connect) createConnectWebsocketsRpcServer(network string, addr string) 
 	// 		logrus.Errorf(fmt.Sprintf("%+v", err))
 	// 	}
 	// =======
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=ws", c.ServerId))
+	_ = s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=ws", c.ServerId))
 	s.RegisterOnShutdown(func(s *server.Server) {
 		err := s.UnregisterAll()
 		if err != nil {
@@ -216,7 +221,7 @@ func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
 	// 		logrus.Errorf(fmt.Sprintf("%+v", err))
 	// 	}
 	// =======
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=tcp", c.ServerId))
+	_ = s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=tcp", c.ServerId))
 	s.RegisterOnShutdown(func(s *server.Server) {
 		err := s.UnregisterAll()
 		if err != nil {

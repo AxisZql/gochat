@@ -70,10 +70,13 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 	if (data.Id == 0) || (passWord != data.Password) {
 		return errors.New("no this user or password error!")
 	}
+	// loginSessionId = sess_map_%d
 	loginSessionId := tools.GetSessionIdByUserId(data.Id) //记录对应用户id的用户的登陆状态，其中保存者用户的登陆凭证token
 	//set token
 	//err = redis.HMSet(auth, userData)
+	// 签发随机凭证
 	randToken := tools.GetRandomToken(32)
+	// sessionId = sess_randToken
 	sessionId := tools.CreateSessionId(randToken)
 	userData := make(map[string]interface{})
 	userData["userId"] = data.Id
@@ -83,6 +86,7 @@ func (rpc *RpcLogic) Login(ctx context.Context, args *proto.LoginRequest, reply 
 	if token != "" {
 		//logout already login user session,即用户只能登陆单个服务
 		oldSession := tools.CreateSessionId(token)
+		// 删除旧的会话session ，从而达到session更新的效果
 		err := RedisSessClient.Del(oldSession).Err()
 		if err != nil {
 			return errors.New("logout user fail!token is:" + token)
@@ -126,7 +130,7 @@ func (rpc *RpcLogic) CheckAuth(ctx context.Context, args *proto.CheckAuthRequest
 		logrus.Infof("check auth fail!,authToken is:%s", authToken)
 		return err
 	}
-	// TODO:redis 查询成功了为什么会出现len(userDataMap)==0的情况
+	// TODO:redis 查询成功了为什么会出现len(userDataMap)==0的情况,刚刚过期？？？
 	if len(userDataMap) == 0 {
 		logrus.Infof("no this user session,authToken is:%s", authToken)
 		return
@@ -164,7 +168,8 @@ func (rpc *RpcLogic) Logout(ctx context.Context, args *proto.LogoutRequest, repl
 	}
 	//del serverId
 	logic := new(Logic)
-	// TODO: 这serverIdKey在哪里写入redis的？
+	// TODO: 这serverIdKey在哪里写入redis的？ 在下面的Connect方法中写入redis的
+	// serverIdKey = gochat_userid
 	serverIdKey := logic.getUserKey(fmt.Sprintf("%d", intUserId))
 	err = RedisSessClient.Del(serverIdKey).Err()
 	if err != nil {
@@ -193,6 +198,7 @@ func (rpc *RpcLogic) Push(ctx context.Context, args *proto.Send, reply *proto.Su
 		return
 	}
 	logic := new(Logic)
+	// userSidKey = gochat_userid
 	userSidKey := logic.getUserKey(fmt.Sprintf("%d", sendData.ToUserId))
 	serverIdStr := RedisSessClient.Get(userSidKey).Val()
 	//var serverIdInt int
@@ -201,7 +207,7 @@ func (rpc *RpcLogic) Push(ctx context.Context, args *proto.Send, reply *proto.Su
 		logrus.Errorf("logic,push parse int fail:%s", err.Error())
 		return
 	}
-	// 将消息写入消息队列
+	// 将消息写入消息队列,所有消息都插入同一个队列
 	err = logic.RedisPublishChannel(serverIdStr, sendData.ToUserId, bodyBytes)
 	if err != nil {
 		logrus.Errorf("logic,redis publish err: %s", err.Error())
@@ -316,7 +322,7 @@ func (rpc *RpcLogic) Connect(ctx context.Context, args *proto.ConnectRequest, re
 		}
 		if RedisClient.HGet(roomUserKey, fmt.Sprintf("%d", reply.UserId)).Val() == "" {
 			RedisClient.HSet(roomUserKey, fmt.Sprintf("%d", reply.UserId), userInfo["userName"])
-			// add room user count ++
+			// add room user count ++，没有该key就创建
 			RedisClient.Incr(logic.getRoomOnlineCountKey(fmt.Sprintf("%d", args.RoomId)))
 		}
 	}
