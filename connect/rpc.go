@@ -10,6 +10,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gochat/config"
+	"gochat/proto"
+	"gochat/tools"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/rcrowley/go-metrics"
 	"github.com/rpcxio/libkv/store"
 	etcdV3 "github.com/rpcxio/rpcx-etcd/client"
@@ -17,12 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/smallnest/rpcx/client"
 	"github.com/smallnest/rpcx/server"
-	"gochat/config"
-	"gochat/proto"
-	"gochat/tools"
-	"strings"
-	"sync"
-	"time"
 )
 
 var logicRpcClient client.XClient
@@ -186,17 +187,20 @@ func (c *Connect) createConnectWebsocketsRpcServer(network string, addr string) 
 	addRegistryPlugin(s, network, addr)
 	//config.Conf.Connect.ConnectTcp.ServerId
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
-	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
-	if err != nil {
-		logrus.Errorf(fmt.Sprintf("%+v", err))
-	}
+	// <<<<<<< HEAD
+	// 	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	// 	if err != nil {
+	// 		logrus.Errorf(fmt.Sprintf("%+v", err))
+	// 	}
+	// =======
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=ws", c.ServerId))
 	s.RegisterOnShutdown(func(s *server.Server) {
-		err = s.UnregisterAll()
+		err := s.UnregisterAll()
 		if err != nil {
 			logrus.Errorf("%+v", err)
 		}
 	})
-	err = s.Serve(network, addr)
+	err := s.Serve(network, addr)
 	if err != nil {
 		logrus.Errorf("%+v", err)
 	}
@@ -206,17 +210,20 @@ func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
 	s := server.NewServer()
 	addRegistryPlugin(s, network, addr)
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
-	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
-	if err != nil {
-		logrus.Errorf(fmt.Sprintf("%+v", err))
-	}
+	// <<<<<<< HEAD
+	// 	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	// 	if err != nil {
+	// 		logrus.Errorf(fmt.Sprintf("%+v", err))
+	// 	}
+	// =======
+	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("serverId=%s&serverType=tcp", c.ServerId))
 	s.RegisterOnShutdown(func(s *server.Server) {
-		err = s.UnregisterAll()
+		err := s.UnregisterAll()
 		if err != nil {
 			logrus.Errorf(fmt.Sprintf("%+v", err))
 		}
 	})
-	err = s.Serve(network, addr)
+	err := s.Serve(network, addr)
 	if err != nil {
 		logrus.Errorf(fmt.Sprintf("%+v", err))
 	}
