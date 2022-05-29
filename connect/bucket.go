@@ -32,9 +32,11 @@ func NewBucket(bucketOptions BucketOptions) (b *Bucket) {
 	b = new(Bucket)
 	b.chs = make(map[int]*Channel, bucketOptions.ChannelSize)
 	b.bucketOptions = bucketOptions
+	// 为slice分配空间
 	b.routines = make([]chan *proto.PushRoomMsgRequest, bucketOptions.RoutineAmount)
 	b.rooms = make(map[int]*Room, bucketOptions.RoomSize)
 	for i := uint64(0); i < b.bucketOptions.RoutineAmount; i++ {
+		// 为slice中每个channel分配空间
 		c := make(chan *proto.PushRoomMsgRequest, bucketOptions.RoutineSize)
 		b.routines[i] = c
 		go b.PushRoom(c)
@@ -62,6 +64,7 @@ func (b *Bucket) Room(rid int) (room *Room) {
 	return
 }
 
+// Put 给桶中加入新的房间会话实例
 func (b *Bucket) Put(userId int, roomId int, ch *Channel) (err error) {
 	var (
 		room *Room
@@ -69,6 +72,7 @@ func (b *Bucket) Put(userId int, roomId int, ch *Channel) (err error) {
 	)
 	b.cLock.Lock()
 	if roomId != NoRoom {
+		// 没有房间则创建新的房间
 		if room, ok = b.rooms[roomId]; !ok {
 			room = NewRoom(roomId)
 			b.rooms[roomId] = room
@@ -79,6 +83,7 @@ func (b *Bucket) Put(userId int, roomId int, ch *Channel) (err error) {
 	b.chs[userId] = ch
 	b.cLock.Unlock()
 
+	// 将新的会话加入房间中
 	if room != nil {
 		err = room.Put(ch)
 	}
@@ -100,6 +105,7 @@ func (b *Bucket) DeleteChannel(ch *Channel) {
 		//delete from bucket
 		delete(b.chs, ch.userId)
 	}
+	// 如果私聊房间已经没有人，则删除在桶中删除当前房间（表示当前房间下线）
 	if room != nil && room.DeleteChannel(ch) {
 		// if room empty delete,will mark room.drop is true
 		if room.drop == true {

@@ -4,7 +4,7 @@ package connect
  * Created by lock
  * Date: 2019-08-12
  * Time: 23:36
- * Desc: rpc客户端
+ * Desc: connect层 rpc服务的定义和注册
  */
 import (
 	"context"
@@ -54,6 +54,7 @@ func (c *Connect) InitLogicRpcClient() (err error) {
 		if e != nil {
 			logrus.Fatalf("init connect rpc etcd discovery client fail:%s", e.Error())
 		}
+		// 构造获取logic层rpc服务的客户端
 		logicRpcClient = client.NewXClient(config.Conf.Common.CommonEtcd.ServerPathLogic, client.Failtry, client.RandomSelect, d, client.DefaultOption)
 	})
 	if logicRpcClient == nil {
@@ -103,6 +104,7 @@ func (c *Connect) InitConnectWebsocketRpcServer() (err error) {
 
 func (c *Connect) InitConnectTcpRpcServer() (err error) {
 	var network, addr string
+	// 开启connect层的rpc服务在6912和6913端口上
 	connectRpcAddress := strings.Split(config.Conf.Connect.ConnectRpcAddressTcp.Address, ",")
 	for _, bind := range connectRpcAddress {
 		if network, addr, err = tools.ParseNetwork(bind); err != nil {
@@ -143,6 +145,8 @@ func (rpc *RpcConnectPush) PushSingleMsg(ctx context.Context, pushMsgReq *proto.
 	return
 }
 
+// TODO：同样功能的函数为什么要分成PushRoomMsg、PushRoomCount、PushRoomInfo 三个函数写（为了调用时不混淆？）
+
 // PushRoomMsg 群聊消息
 func (rpc *RpcConnectPush) PushRoomMsg(ctx context.Context, pushRoomMsgReq *proto.PushRoomMsgRequest, successReply *proto.SuccessReply) (err error) {
 	successReply.Code = config.SuccessReplyCode
@@ -174,12 +178,34 @@ func (rpc *RpcConnectPush) PushRoomInfo(ctx context.Context, pushRoomMsgReq *pro
 	return
 }
 
+// TODO：WebSocket和TCP的Rpc服务功能是相同的，从本系统的架构图上可以看出
+
 func (c *Connect) createConnectWebsocketsRpcServer(network string, addr string) {
 	s := server.NewServer()
 	// 添加etcd配置并连接etcd集群
 	addRegistryPlugin(s, network, addr)
 	//config.Conf.Connect.ConnectTcp.ServerId
 	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectWebsocket.ServerId))
+	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
+	if err != nil {
+		logrus.Errorf(fmt.Sprintf("%+v", err))
+	}
+	s.RegisterOnShutdown(func(s *server.Server) {
+		err = s.UnregisterAll()
+		if err != nil {
+			logrus.Errorf("%+v", err)
+		}
+	})
+	err = s.Serve(network, addr)
+	if err != nil {
+		logrus.Errorf("%+v", err)
+	}
+}
+
+func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
+	s := server.NewServer()
+	addRegistryPlugin(s, network, addr)
+	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
 	err := s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
 	if err != nil {
 		logrus.Errorf(fmt.Sprintf("%+v", err))
@@ -194,17 +220,6 @@ func (c *Connect) createConnectWebsocketsRpcServer(network string, addr string) 
 	if err != nil {
 		logrus.Errorf(fmt.Sprintf("%+v", err))
 	}
-}
-
-func (c *Connect) createConnectTcpRpcServer(network string, addr string) {
-	s := server.NewServer()
-	addRegistryPlugin(s, network, addr)
-	//s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", config.Conf.Connect.ConnectTcp.ServerId))
-	s.RegisterName(config.Conf.Common.CommonEtcd.ServerPathConnect, new(RpcConnectPush), fmt.Sprintf("%s", c.ServerId))
-	s.RegisterOnShutdown(func(s *server.Server) {
-		s.UnregisterAll()
-	})
-	s.Serve(network, addr)
 }
 
 // 添加etcd配置并连接etcd集群

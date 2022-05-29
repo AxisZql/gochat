@@ -1,8 +1,9 @@
+package stickpackage
+
 /**
  * Created by lock
  * Date: 2020/5/20
  */
-package stickpackage
 
 import (
 	"encoding/binary"

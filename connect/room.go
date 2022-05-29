@@ -31,10 +31,12 @@ func NewRoom(roomId int) *Room {
 	return room
 }
 
+// Put 用户加入房间聊天会话
 func (r *Room) Put(ch *Channel) (err error) {
-	//doubly linked list
+	//doubly linked list,采用前插链表的方式来新增Channel（会话）节点
 	r.rLock.Lock()
 	defer r.rLock.Unlock()
+	// 要判断当前聊天室是否在线
 	if !r.drop {
 		if r.next != nil {
 			r.next.Prev = ch
@@ -49,6 +51,7 @@ func (r *Room) Put(ch *Channel) (err error) {
 	return
 }
 
+// Push 往房间中所有在线用户发送消息
 func (r *Room) Push(msg *proto.Msg) {
 	r.rLock.RLock()
 	for ch := r.next; ch != nil; ch = ch.Next {
@@ -74,6 +77,7 @@ func (r *Room) DeleteChannel(ch *Channel) bool {
 	}
 	r.OnlineCount--
 	r.drop = false
+	// TODO:房间在线用户数为0时，房间会失效
 	if r.OnlineCount <= 0 {
 		r.drop = true
 	}

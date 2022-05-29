@@ -30,6 +30,7 @@ func (c *Connect) Run() {
 	connectConfig := config.Conf.Connect
 
 	//set the maximum number of CPUs that can be executing
+	// 设置CPU的最大可以执行个数
 	runtime.GOMAXPROCS(connectConfig.ConnectBucket.CpuNum)
 
 	//init logic layer rpc client, call logic layer rpc server
@@ -42,12 +43,13 @@ func (c *Connect) Run() {
 	Buckets := make([]*Bucket, connectConfig.ConnectBucket.CpuNum)
 	for i := 0; i < connectConfig.ConnectBucket.CpuNum; i++ {
 		Buckets[i] = NewBucket(BucketOptions{
-			ChannelSize:   connectConfig.ConnectBucket.Channel,
-			RoomSize:      connectConfig.ConnectBucket.Room,
-			RoutineAmount: connectConfig.ConnectBucket.RoutineAmount,
-			RoutineSize:   connectConfig.ConnectBucket.RoutineSize,
+			ChannelSize:   connectConfig.ConnectBucket.Channel,       // TODO:一个桶(或者一个房间)可以处理的会话数目，项目配置是1024
+			RoomSize:      connectConfig.ConnectBucket.Room,          // 一个桶可以管理的房间数目，项目配置是1024
+			RoutineAmount: connectConfig.ConnectBucket.RoutineAmount, // 队列中的routine(请求)缓冲区数目，项目配置是32个
+			RoutineSize:   connectConfig.ConnectBucket.RoutineSize,   // 队列中每个请求缓冲区包含的请求数目，项目配置的是20个
 		})
 	}
+	// operator 主要负责调用logic层的Connect和DisConnect方法
 	operator := new(DefaultOperator)
 	DefaultServer = NewServer(Buckets, operator, ServerOptions{
 		WriteWait:       10 * time.Second,
@@ -58,13 +60,16 @@ func (c *Connect) Run() {
 		WriteBufferSize: 1024,
 		BroadcastSize:   512,
 	})
+	// uuid生成的唯一的serverId
 	c.ServerId = fmt.Sprintf("%s-%s", "ws", uuid.New().String())
 	//init Connect layer rpc server ,task layer will call this
+	// 初始化WebSocket服务调用logic层rpc服务
 	if err := c.InitConnectWebsocketRpcServer(); err != nil {
 		logrus.Panicf("InitConnectWebsocketRpcServer Fatal error: %s \n", err.Error())
 	}
 
 	//start Connect layer server handler persistent connection
+	// 启动对外暴露WebSocket服务的RESTful Api，使用golang的net/http库实现
 	if err := c.InitWebsocket(); err != nil {
 		logrus.Panicf("Connect layer InitWebsocket() error:  %s \n", err.Error())
 	}
@@ -110,6 +115,7 @@ func (c *Connect) RunTcp() {
 		logrus.Panicf("InitConnectWebsocketRpcServer Fatal error: %s \n", err.Error())
 	}
 	//start Connect layer server handler persistent connection by tcp
+	// 通过TCP启动连接层服务器处理程序持久连接
 	if err := c.InitTcpServer(); err != nil {
 		logrus.Panicf("Connect layerInitTcpServer() error:%s\n ", err.Error())
 	}
