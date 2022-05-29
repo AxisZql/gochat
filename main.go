@@ -25,6 +25,7 @@ func main() {
 	flag.StringVar(&module, "module", "", "assign run module")
 	flag.Parse()
 	fmt.Println(fmt.Sprintf("start run %s module", module))
+	// 不同的module对应一个微服务（即每个module对应一个独立的服务）
 	switch module {
 	case "logic":
 		// rpc方式的服务

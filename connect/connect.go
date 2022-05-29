@@ -109,6 +109,7 @@ func (c *Connect) RunTcp() {
 	//go func() {
 	//	http.ListenAndServe("0.0.0.0:9000", nil)
 	//}()
+	// 一个ServerId持有多个Bucket，而一个Bucket持有多个room，一个room持有多个channel
 	c.ServerId = fmt.Sprintf("%s-%s", "tcp", uuid.New().String())
 	//init Connect layer rpc server ,task layer will call this
 	if err := c.InitConnectTcpRpcServer(); err != nil {

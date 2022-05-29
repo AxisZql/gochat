@@ -33,7 +33,7 @@
 ```
 关于最新版本支持支持websocket,tcp消息互通部分的说明：
 tcp消息投递与接收测试代码在本项目pkg/stickpackage目录中的:stickpackage_test.go文件中的Test_TcpClient方法
-其中stickpackage.go文件主要为实现tcp拆包解包时用到，可以追踪下其中Pack与Unpack方法的调用地方。
+  其中stickpackage.go文件主要为实现tcp拆包解包时用到，可以追踪下其中Pack与Unpack方法的调用地方。
 主要原因是tcp是基于第4层的流式协议而非应用层协议，所以才有了这个过程。
 如果是android，ios客户端来链接，那么对应的就是需要用熟悉的语言来实现这个tcp拆包解包的过程，例子中的代码是golang实现的demo。
 go test -v -count=1 *.go -test.run Test_TcpClient
@@ -287,3 +287,9 @@ jetbranins官方在赠送license的时候会请求提议加入他们的品牌log
 gochat is licensed under the MIT License. 
 
 
+
+###  TODO
+
+* 现在的问题是对应connect层服务奔溃了，redis消息队列中未被消费的消息该怎么处理
+  * 想法1:挂掉无所谓，只要最后消费者没有确认消息已经被消费即可，（没有必要将消息和serverId绑定？有必要因为对应serverId的服务上保持着对应客户端和服务端掉连接）
+  * 上一个connect服务崩溃后，客户端和对应服务端掉连接也被断开了。接下来，客户端会选择和其他可用的connect层服务来建立客户端和服务端间的通信连接
